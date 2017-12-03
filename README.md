@@ -13,3 +13,13 @@ And delete the xerox created directory
 
 The xerox created directory and filename stars with `img-`.
 
+
+## How to use
+
+copy and edit template.yaml to another(data.yaml for example)
+
+    cp template.yaml data.yaml
+
+    vi data.yaml
+
+    ./pyftpd.py -c data.yaml
