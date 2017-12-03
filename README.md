@@ -2,7 +2,7 @@
 Useless stuffs
 
 # pyftpd.py
-pyftpdlib based ftp library.
+[pyftpdlib](https://github.com/giampaolo/pyftpdlib) based ftp server.
 
 Customized for Xerox scanner.
 When a xerox scanner sent a pdf file by ftp, it creates a directory and put file in it.
