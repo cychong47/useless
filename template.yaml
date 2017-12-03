@@ -1,0 +1,11 @@
+---
+server:
+  username: USERNAME
+  password: PASSWORD
+  ip_address: 0.0.0.0
+  port_number: 65500
+  incoming_dir: /Users/cychong/Dropbox/incoming
+  log_dir: /Users/cychong/tmp
+
+post-processing: 
+    doc_dir: /Users/cychong/Dropbox/incoming
