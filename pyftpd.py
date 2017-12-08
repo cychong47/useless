@@ -20,8 +20,8 @@ from pyftpdlib.servers import FTPServer
 import yaml
 
 def get_home_dir(home_dir):
-    ''' if default directory is exist and it is writable use it.
-    Otherwise, fallback to somewhere such as /tmp
+    ''' If the default directory exists and it is writable, use it.
+    Otherwise, use default directory /tmp
     '''
     if os.access(home_dir, os.W_OK) is True:
         _dir = home_dir
@@ -37,7 +37,7 @@ class MyHandler(FTPHandler):
     handler for ftp events
     """
 
-    doc_dir = ""    # by default, do not move the received file
+    doc_dir = None    # by default, do not move the received file
 
     def on_connect(self):
         logging.info("%s:%s connected", self.remote_ip, self.remote_port)
@@ -70,21 +70,20 @@ class MyHandler(FTPHandler):
 
         tmp = file.split('/')
 
-
         logging.info("Receive %s", file)
 
-        # 1. move the file to somewhere with renaming
-        cur_date = datetime.now()
-        new_filename = "%s%s" %(cur_date.strftime("%Y%m%d_%H%M%S_%f"), file_extension)
+        if self.doc_dir != None:
+            # 1. move file to somewhere with renaming
+            cur_date = datetime.now()
+            new_filename = "%s%s" %(cur_date.strftime("%Y%m%d_%H%M%S_%f"), file_extension)
 
-        if self.doc_dir != "":
             try:
                 shutil.move(file, "%s/%s" %(self.doc_dir, new_filename))
                 logging.info("Move to %s/%s", self.doc_dir, new_filename)
             except FileNotFoundError:
-                logging.error("Fail to move file %s/%s", self.doc_dir, new_filename)
+                logging.error("Fail to move %s/%s", self.doc_dir, new_filename)
 
-            # 2. if the directory starts with 'img-' and it is empty, delete it
+            # 2. if the directory name starts with 'img-' and it is empty, delete it
             if dir_name.find("img-") == 0 and os.listdir(filepath) == []:
                 os.rmdir(filepath)
 
