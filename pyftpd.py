@@ -12,33 +12,36 @@ __version__ = "0.1"
 import os
 import sys
 import shutil
-import yaml
 import logging
-from optparse import OptionParser
+import argparse
 from datetime import datetime
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
+import yaml
 
 def get_home_dir(home_dir):
-    ''' if default hoem directory is exist and writable use it
-    otherwise, fallback to somewhere
+    ''' if default directory is exist and it is writable use it.
+    Otherwise, fallback to somewhere such as /tmp
     '''
     if os.access(home_dir, os.W_OK) is True:
         _dir = home_dir
     else:
         _dir = '/tmp'
 
-    logging.info("Use %s as home directory" %_dir)
+    logging.info("Use %s as home directory", _dir)
 
     return _dir
 
 class MyHandler(FTPHandler):
+    """
+    handler for ftp events
+    """
 
     doc_dir = ""    # by default, do not move the received file
 
     def on_connect(self):
-        logging.info("%s:%s connected" % (self.remote_ip, self.remote_port))
+        logging.info("%s:%s connected", self.remote_ip, self.remote_port)
 
     def on_disconnect(self):
         # do something when client disconnects
@@ -69,25 +72,22 @@ class MyHandler(FTPHandler):
         tmp = file.split('/')
 
 
-        logging.info("Receive %s" %file)
+        logging.info("Receive %s", file)
 
         # 1. move the file to somewhere with renaming
-        dt = datetime.now()
-        new_filename = "%s%s" %(dt.strftime("%Y%m%d_%H%M%S_%f"), file_extension)
+        cur_date = datetime.now()
+        new_filename = "%s%s" %(cur_date.strftime("%Y%m%d_%H%M%S_%f"), file_extension)
 
         if self.doc_dir != "":
             try:
                 shutil.move(file, "%s/%s" %(self.doc_dir, new_filename))
-                logging.info("Move to %s/%s" %(self.doc_dir, new_filename))
+                logging.info("Move to %s/%s", self.doc_dir, new_filename)
             except FileNotFoundError:
-                logging.error("Fail to move file %s/%s" %(self.doc_dir, new_filename))
-                pass
+                logging.error("Fail to move file %s/%s", self.doc_dir, new_filename)
 
             # 2. if the directory starts with 'img-' and it is empty, delete it
             if dir_name.find("img-") == 0 and os.listdir(filepath) == []:
                 os.rmdir(filepath)
-
-        pass
 
     def on_incomplete_file_sent(self, file):
         # do something when a file is partially sent
@@ -95,24 +95,16 @@ class MyHandler(FTPHandler):
 
     def on_incomplete_file_received(self, file):
         # remove partially uploaded files
-        import os
         os.remove(file)
 
 def main():
-    usage   = "Usage: %prog [options]"
-    version = "%s" % __version__
+    """
+    main
+    """
 
-    option_parser = OptionParser(usage=usage, version=version)
-    option_parser.set_defaults(
-        cfg_name="data.yaml"
-    )
-
-    option_parser.add_option("-c", "--cfg",
-                             action="store", dest="cfg_name",
-                             help="YAML filename"
-    )
-
-    (options, args) = option_parser.parse_args()
+    parser = argparse.ArgumentParser("Simple ftp server")
+    parser.add_argument('-c', action='store', dest='cfg_name', help="YAML filename")
+    options = parser.parse_args()
 
     if not os.path.isfile(options.cfg_name):
         print("Error! Configuration file %s is not exit..." %options.cfg_name)
