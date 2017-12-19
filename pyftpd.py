@@ -10,6 +10,7 @@
 __version__ = "0.1"
 
 import os
+import sys
 import shutil
 import yaml
 import logging
@@ -112,6 +113,10 @@ def main():
     )
 
     (options, args) = option_parser.parse_args()
+
+    if not os.path.isfile(options.cfg_name):
+        print("Error! Configuration file %s is not exit..." %options.cfg_name)
+        sys.exit(0)
 
     stream = open(options.cfg_name, 'r')
     cfg = yaml.load(stream)
