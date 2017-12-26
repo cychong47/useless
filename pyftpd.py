@@ -78,7 +78,7 @@ class MyHandler(FTPHandler):
         cur_date = datetime.now()
         new_filename = "%s%s" %(cur_date.strftime("%Y%m%d_%H%M%S_%f"), file_extension)
 
-        if self.doc_dir != "":
+        if self.doc_dir != "" and filename.find("img-") == 0:
             try:
                 shutil.move(file, "%s/%s" %(self.doc_dir, new_filename))
                 logging.info("Move to %s/%s", self.doc_dir, new_filename)
