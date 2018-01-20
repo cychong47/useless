@@ -19,12 +19,19 @@ from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 import yaml
 
-def get_home_dir(home_dir):
+def get_dir(dir_name):
     ''' If the default directory exists and it is writable, use it.
     Otherwise, use default directory /tmp
     '''
-    if os.access(home_dir, os.W_OK) is True:
-        _dir = home_dir
+    if dir_name[0:4] == "ENV:":
+        env_string = dir_name.split(':')[1]
+        try:
+            dir_name = os.environ[env_string]
+        except KeyError:
+            dir_name = '/tmp'
+    
+    if os.access(dir_name, os.W_OK) is True:
+        _dir = dir_name
     else:
         _dir = '/tmp'
 
@@ -95,6 +102,12 @@ class MyHandler(FTPHandler):
         # remove partially uploaded files
         os.remove(file)
 
+
+def open_logfile(log_dir):
+    log_filename = '%s/pyftpd.log' %get_dir(log_dir)
+    print("log dir  : %s" %log_filename)
+    logging.basicConfig(filename=log_filename, level=logging.INFO)
+
 def main():
     """
     main
@@ -106,26 +119,26 @@ def main():
 
     stream = open(options.cfg_name, 'r')
     cfg = yaml.load(stream)
-    ftp_param = cfg['server']
+    ftp_cfg = cfg['server']
+    
+    open_logfile(ftp_cfg['log_dir'])
 
-    home_dir = get_home_dir(ftp_param['incoming_dir'])
+    home_dir = get_dir(ftp_cfg['incoming_dir'])
 
     print("home dir : %s" %home_dir)
 
     authorizer = DummyAuthorizer()
-    authorizer.add_user(ftp_param['username'], ftp_param['password'], home_dir, perm="elradfmw")
+    authorizer.add_user(ftp_cfg['username'], ftp_cfg['password'], home_dir, perm="elradfmw")
 
     #authorizer.add_anonymous("/home/nobody")
 
     handler = MyHandler # FTPHandler is the default handler
     handler.authorizer = authorizer
-    handler.doc_dir = cfg['post-processing']['doc_dir']
+    handler.doc_dir = get_dir(cfg['post-processing']['doc_dir'])
 
-    log_filename = '%s/pyftpd.log' %ftp_param['log_dir']
-    print("log dir  : %s" %log_filename)
-    logging.basicConfig(filename=log_filename, level=logging.INFO)
 
-    server = FTPServer((ftp_param['ip_address'], ftp_param['port_number']), handler)
+
+    server = FTPServer((ftp_cfg['ip_address'], ftp_cfg['port_number']), handler)
     server.serve_forever()
 
 if __name__ == "__main__":
