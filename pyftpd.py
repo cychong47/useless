@@ -114,7 +114,7 @@ def main():
     """
 
     parser = argparse.ArgumentParser("Simple ftp server")
-    parser.add_argument('-c', action='store', dest='cfg_name', help="YAML filename")
+    parser.add_argument('-c', action='store', dest='cfg_name', default="/etc/pyftpd.yaml", help="YAML filename")
     options = parser.parse_args()
 
     stream = open(options.cfg_name, 'r')
