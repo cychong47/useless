@@ -10,6 +10,7 @@
 __version__ = "0.1"
 
 import os
+import sys
 import shutil
 import logging
 import argparse
@@ -84,6 +85,7 @@ class MyHandler(FTPHandler):
             cur_date = datetime.now()
             new_filename = "%s%s" %(cur_date.strftime("%Y%m%d_%H%M%S_%f"), file_extension)
 
+        if self.doc_dir != "" and filename.find("img-") == 0:
             try:
                 shutil.move(file, "%s/%s" %(self.doc_dir, new_filename))
                 logging.info("Move to %s/%s", self.doc_dir, new_filename)
@@ -116,6 +118,10 @@ def main():
     parser = argparse.ArgumentParser("Simple ftp server")
     parser.add_argument('-c', action='store', dest='cfg_name', default="/etc/pyftpd.yaml", help="YAML filename")
     options = parser.parse_args()
+
+    if not os.path.isfile(options.cfg_name):
+        print("Error! Configuration file %s is not exit..." %options.cfg_name)
+        sys.exit(0)
 
     stream = open(options.cfg_name, 'r')
     cfg = yaml.load(stream)
