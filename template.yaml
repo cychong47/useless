@@ -9,5 +9,5 @@ server:
   log_dir: ENV:PYFTPD_LOG_DIR
 # log_dir: /tmp
 post-processing: 
-  doc_dir: ENV:PYFTPD_INCOMING_DIR
+  doc_dir: ENV:PYFTPD_DOC_DIR
 # doc_dir: /tmp
