@@ -1,0 +1,11 @@
+---
+server:
+  username: scan
+  password: 1234qwer
+  ip_address: 0.0.0.0
+  port_number: 65500
+  incoming_dir: /pyftpd/incoming
+  log_dir: /pyftpd/log
+
+post-processing: 
+  doc_dir: 
