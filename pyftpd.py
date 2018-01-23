@@ -20,16 +20,24 @@ from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 import yaml
 
-def get_home_dir(home_dir):
-    ''' if default directory is exist and it is writable use it.
-    Otherwise, fallback to somewhere such as /tmp
+def get_dir(dir_name):
+    ''' If the default directory exists and it is writable, use it.
+    Otherwise, use default directory /tmp
     '''
-    if os.access(home_dir, os.W_OK) is True:
-        _dir = home_dir
-    else:
-        _dir = '/tmp'
+    if dir_name == None:
+        return ""
 
-    logging.info("Use %s as home directory", _dir)
+    if dir_name[0:4] == "ENV:":
+        env_string = dir_name.split(':')[1]
+        try:
+            dir_name = os.environ[env_string]
+        except KeyError:
+            dir_name = '.'
+    
+    if os.access(dir_name, os.W_OK) is True:
+        _dir = dir_name
+    else:
+        _dir = '.'
 
     return _dir
 
@@ -38,7 +46,7 @@ class MyHandler(FTPHandler):
     handler for ftp events
     """
 
-    doc_dir = ""    # by default, do not move the received file
+    doc_dir = None    # by default, do not move the received file
 
     def on_connect(self):
         logging.info("%s:%s connected", self.remote_ip, self.remote_port)
@@ -71,21 +79,21 @@ class MyHandler(FTPHandler):
 
         tmp = file.split('/')
 
-
         logging.info("Receive %s", file)
 
-        # 1. move the file to somewhere with renaming
-        cur_date = datetime.now()
-        new_filename = "%s%s" %(cur_date.strftime("%Y%m%d_%H%M%S_%f"), file_extension)
+        if self.doc_dir != None:
+            # 1. move file to somewhere with renaming
+            cur_date = datetime.now()
+            new_filename = "%s%s" %(cur_date.strftime("%Y%m%d_%H%M%S_%f"), file_extension)
 
         if self.doc_dir != "" and filename.find("img-") == 0:
             try:
                 shutil.move(file, "%s/%s" %(self.doc_dir, new_filename))
                 logging.info("Move to %s/%s", self.doc_dir, new_filename)
             except FileNotFoundError:
-                logging.error("Fail to move file %s/%s", self.doc_dir, new_filename)
+                logging.error("Fail to move %s/%s", self.doc_dir, new_filename)
 
-            # 2. if the directory starts with 'img-' and it is empty, delete it
+            # 2. if the directory name starts with 'img-' and it is empty, delete it
             if dir_name.find("img-") == 0 and os.listdir(filepath) == []:
                 os.rmdir(filepath)
 
@@ -97,13 +105,24 @@ class MyHandler(FTPHandler):
         # remove partially uploaded files
         os.remove(file)
 
+
+def open_logfile(log_dir):
+    log_filename = '%s/pyftpd.log' %get_dir(log_dir)
+    print("log dir  : %s" %log_filename)
+    logging.basicConfig(filename=log_filename, level=logging.INFO)
+
+    # print to console also
+    stderrLogger=logging.StreamHandler()
+    stderrLogger.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
+    logging.getLogger().addHandler(stderrLogger)
+
 def main():
     """
     main
     """
 
     parser = argparse.ArgumentParser("Simple ftp server")
-    parser.add_argument('-c', action='store', dest='cfg_name', help="YAML filename")
+    parser.add_argument('-c', action='store', dest='cfg_name', default="/etc/pyftpd.yaml", help="YAML filename")
     options = parser.parse_args()
 
     if not os.path.isfile(options.cfg_name):
@@ -112,26 +131,48 @@ def main():
 
     stream = open(options.cfg_name, 'r')
     cfg = yaml.load(stream)
-    ftp_param = cfg['server']
+    ftp_cfg = cfg['server']
+    
+    open_logfile(ftp_cfg['log_dir'])
+    logging.info("log dir  : %s" %ftp_cfg['log_dir'])
 
-    home_dir = get_home_dir(ftp_param['incoming_dir'])
-
-    print("home dir : %s" %home_dir)
+    home_dir = get_dir(ftp_cfg['incoming_dir'])
+    logging.info("home dir : %s" %home_dir)
 
     authorizer = DummyAuthorizer()
-    authorizer.add_user(ftp_param['username'], ftp_param['password'], home_dir, perm="elradfmw")
+    authorizer.add_user(ftp_cfg['username'], ftp_cfg['password'], home_dir, perm="elradfmw")
 
     #authorizer.add_anonymous("/home/nobody")
 
     handler = MyHandler # FTPHandler is the default handler
     handler.authorizer = authorizer
-    handler.doc_dir = cfg['post-processing']['doc_dir']
+    handler.doc_dir = get_dir(cfg['post-processing']['doc_dir'])
 
-    log_filename = '%s/pyftpd.log' %ftp_param['log_dir']
-    print("log dir  : %s" %log_filename)
-    logging.basicConfig(filename=log_filename, level=logging.INFO)
+    # enable for docker case
+    handler.permit_foreign_addresses = True
 
-    server = FTPServer((ftp_param['ip_address'], ftp_param['port_number']), handler)
+    try:
+        listening_port = os.environ["PYFTPD_PORT"]
+        listening_port = eval(listening_port)
+    except KeyError:
+        listening_port = ftp_cfg['port_number']
+
+    logging.info("Listening port : %d" %listening_port)
+    print("Listening port : %d" %listening_port)
+
+    try:
+        passive_ports = os.environ["PYFTPD_PASSIVE_PORT"]
+        print("Passive port   : %s" %passive_ports)
+        p_ports = passive_ports.split('-')  
+        if len(p_ports) == 2:
+            handler.passive_ports = range(eval(p_ports[0]), eval(p_ports[1]))
+
+        logging.info("Passive mode : %s" %passive_port)
+    except:
+        logging.info("Active mode")
+        pass
+
+    server = FTPServer((ftp_cfg['ip_address'], listening_port), handler)
     server.serve_forever()
 
 if __name__ == "__main__":
