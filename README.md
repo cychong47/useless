@@ -23,3 +23,8 @@ copy and edit template.yaml to another(data.yaml for example)
     vi data.yaml
 
     ./pyftpd.py -c data.yaml
+
+## Docker
+
+$ run.sh for dockerized pyftpd
+
