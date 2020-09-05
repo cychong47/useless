@@ -9,4 +9,4 @@ server:
   log_dir: /Users/cychong/tmp
 # log_dir: /tmp
 post-processing: 
-  doc_dir: /Users/cychong/Dropbox/incoming
+  target_dir: /Users/cychong/Dropbox/incoming

@@ -8,4 +8,4 @@ server:
   log_dir: /pyftpd/log
 
 post-processing: 
-  doc_dir: 
+  target_dir: 

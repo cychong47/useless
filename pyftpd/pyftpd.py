@@ -46,7 +46,7 @@ class MyHandler(FTPHandler):
     handler for ftp events
     """
 
-    doc_dir = None    # by default, do not move the received file
+    target_dir = None    # by default, do not move the received file
 
     def on_connect(self):
         logging.info("%s:%s connected", self.remote_ip, self.remote_port)
@@ -81,17 +81,17 @@ class MyHandler(FTPHandler):
 
         logging.info("Receive %s", file)
 
-        if self.doc_dir != None:
+        if self.target_dir != None:
             # 1. move file to somewhere with renaming
             cur_date = datetime.now()
             new_filename = "%s%s" %(cur_date.strftime("%Y%m%d_%H%M%S_%f"), file_extension)
 
-        if self.doc_dir != "" and filename.find("img-") == 0:
+        if self.target_dir != "" and filename.find("img-") == 0:
             try:
-                shutil.move(file, "%s/%s" %(self.doc_dir, new_filename))
-                logging.info("Move to %s/%s", self.doc_dir, new_filename)
+                shutil.move(file, "%s/%s" %(self.target_dir, new_filename))
+                logging.info("Move to %s/%s", self.target_dir, new_filename)
             except FileNotFoundError:
-                logging.error("Fail to move %s/%s", self.doc_dir, new_filename)
+                logging.error("Fail to move %s/%s", self.target_dir, new_filename)
 
             # 2. if the directory name starts with 'img-' and it is empty, delete it
             if dir_name.find("img-") == 0 and os.listdir(filepath) == []:
@@ -146,7 +146,7 @@ def main():
 
     handler = MyHandler # FTPHandler is the default handler
     handler.authorizer = authorizer
-    handler.doc_dir = get_dir(cfg['post-processing']['doc_dir'])
+    handler.target_dir = get_dir(cfg['post-processing']['target_dir'])
 
     # enable for docker case
     handler.permit_foreign_addresses = True
